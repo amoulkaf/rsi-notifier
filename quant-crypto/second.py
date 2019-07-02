@@ -35,6 +35,7 @@ def main():
         lows.append(int(float(record[3])))
         closes.append(int(float(record[4])))
         volume.append(int(float(record[5])))
+
     df = pd.DataFrame({
         'index': index,
         'open': opens,
