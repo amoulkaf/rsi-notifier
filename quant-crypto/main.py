@@ -25,12 +25,12 @@ def newline(p1, p2):
     ax.add_line(l)
     return l
 
-def get_records():
+def get_records(ticker , interval):
     now = int(time.time()) * 1000
     params = {
-        "symbol": "BTCUSDT",
-        "interval": "1d",
-        "startTime": now - _DAY_ * 15,
+        "symbol": ticker,
+        "interval": interval,
+        "startTime": now - _DAY_ * 20,
         "endTime": now
     }
     
@@ -39,7 +39,7 @@ def get_records():
     
 def main():
     closes = list()
-    records = get_records()
+    records = get_records("BTCUSDT", "1h")
     for record in records:
         closes.append(int(float(record[4])))
     print("closes : %s" % closes)
