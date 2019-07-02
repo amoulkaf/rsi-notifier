@@ -25,18 +25,7 @@ def newline(p1, p2):
     ax.add_line(l)
     return l
 
-def get_records(ticker , interval):
-    now = int(time.time()) * 1000
-    params = {
-        "symbol": ticker,
-        "interval": interval,
-        "startTime": now - _DAY_ * 20,
-        "endTime": now
-    }
-    
-    r = requests.get('https://binance.com/api/v1/klines', params=params)
-    return json.loads(r.text)
-    
+
 def main():
     closes = list()
     records = get_records("BTCUSDT", "1h")
