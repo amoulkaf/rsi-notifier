@@ -25,21 +25,23 @@ def newline(p1, p2):
     ax.add_line(l)
     return l
 
-def main():
+def get_records(ticker , interval):
     now = int(time.time()) * 1000
     params = {
-        "symbol": "BTCUSDT",
-        "interval": "1d",
-        "startTime": now - _DAY_ * 15,
+        "symbol": ticker,
+        "interval": interval,
+        "startTime": now - _DAY_ * 20,
         "endTime": now
     }
-    closes = list()
+    
     r = requests.get('https://binance.com/api/v1/klines', params=params)
-    records = json.loads(r.text)
-
+    return json.loads(r.text)
+    
+def main():
+    closes = list()
+    records = get_records("BTCUSDT", "1h")
     for record in records:
         closes.append(int(float(record[4])))
-
     print("closes : %s" % closes)
     # x = electrocardiogram(closes)
     peaks, _ = find_peaks(closes, height=0)
@@ -57,5 +59,4 @@ def main():
     rsi_lr = linear_regression.rsi_linear_regression(closes)
     print(rsi_lr)
 
-if __name__ == '__main__':
-    main()
+
