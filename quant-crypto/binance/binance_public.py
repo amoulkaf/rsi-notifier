@@ -1,7 +1,7 @@
 import requests
 import json
 import time
-from timeframe import Timeframe
+from .timeframe import Timeframe
 
 
 class BinancePublicClient:
@@ -55,3 +55,7 @@ class BinancePublicClient:
     def get_lows(self, ticker, timeframe, interval, lookback):
         records = self.get_records(ticker, timeframe, interval, lookback)
         return list([record[3] for record in records])
+
+
+
+
