@@ -40,10 +40,6 @@ class BinancePublicClient:
                                  start_date=(now - (timeframe.value[1] * lookback)),
                                  end_date=now)
 
-    def get_closes(self, ticker, timeframe, interval, lookback):
-        records = self.get_records(ticker, timeframe, interval, lookback)
-        return list([record[4] for record in records])
-
     def get_opens(self, ticker, timeframe, interval, lookback):
         records = self.get_records(ticker, timeframe, interval, lookback)
         return list([record[1] for record in records])
@@ -56,6 +52,13 @@ class BinancePublicClient:
         records = self.get_records(ticker, timeframe, interval, lookback)
         return list([record[3] for record in records])
 
+    def get_closes(self, ticker, timeframe, interval, lookback):
+        records = self.get_records(ticker, timeframe, interval, lookback)
+        return list([record[4] for record in records])
+
+    def get_volume(self, ticker, timeframe, interval, lookback):
+        records = self.get_records(ticker, timeframe, interval, lookback)
+        return list([record[5] for record in records])
 
 
 
