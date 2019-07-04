@@ -1,10 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import itertools
 
 
-def nice_angle( a, b, c):
-    #expect a, b ,c to be price at 3 consecutive times
+def nice_angle(a, b, c):
+    # expect a, b ,c to be price at 3 consecutive times
     a = np.array([0, a])
     b = np.array([1, b])
     c = np.array([2, c])
@@ -20,10 +21,26 @@ def nice_angle( a, b, c):
 
 class RsiDivergence:
 
+    def get_successive_highs(self, peaks, position):
+        pass
+
+    def does_segments_cross(self, p1, p2, p3, p4):
+        pass
+
+    def higher_highs(self, peaks):
+        a = peaks
+        peaks_list = list() # [v for i, v in peaks.item() if (not pd.isnull(v))]
+        higher_highs = list()
+
+        for i, v in peaks.items():
+            if not pd.isnull(v):
+                peaks_list.append(v)
+        
+
     @staticmethod
     def nice_peak(df):
-        #tries to select only peaks that have a minimum of variation compared to they right and left points
-        #calculates the sum of the rise before the peak(%) , and the drop after it , and returns true if it is higher than a minimum
+        # tries to select only peaks that have a minimum of variation compared to they right and left points
+        # calculates the sum of the rise before the peak(%) , and the drop after it , and returns true if it is higher than a minimum
         # a naive way to write it is 2 * df.data - df.data.shift(1) - df.data.shift(-1)) / df.data.mean() > 0.02
         print("shit is ")
         print((2 * df.data - df.data.shift(1) - df.data.shift(-1)) / df.data.mean())
@@ -44,7 +61,7 @@ class RsiDivergence:
         # Find local peaks
         # df['min'] = df.data[(df.data.shift(1) > df.data) & (df.data.shift(-1) > df.data)]
         df['max'] = df.data[(df.data.shift(1) < df.data) & (df.data.shift(-1) < df.data) & self.nice_peak(df)]
-
+        # self.higher_highs(df['max'])
         # Plot results
         # plt.scatter(df.index, df['min'], c='r')
         plt.scatter(df.index, df['max'], c='g')
