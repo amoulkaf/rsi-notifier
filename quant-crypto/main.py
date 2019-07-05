@@ -1,4 +1,4 @@
-from binance.binanxce_public import BinancePublicClient
+from binance.binance_public import BinancePublicClient
 from binance.timeframe import Timeframe
 
 from signals.rsi_divergence import RsiDivergence

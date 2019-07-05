@@ -21,21 +21,27 @@ def nice_angle(a, b, c):
 
 class RsiDivergence:
 
-    def get_successive_highs(self, peaks, position):
-        pass
+    def get_successive_highs(self, peaks, position, minimum_range):
+        highs = []
+        for i in range(minimum_range + position, len(peaks)):
+            if peaks[i] > peaks[position]:
+                highs.append(i)
+        return highs
 
     def does_segments_cross(self, p1, p2, p3, p4):
         pass
 
     def higher_highs(self, peaks):
         a = peaks
-        peaks_list = list() # [v for i, v in peaks.item() if (not pd.isnull(v))]
+        peaks_list = list()  # [v for i, v in peaks.item() if (not pd.isnull(v))]
         higher_highs = list()
 
         for i, v in peaks.items():
             if not pd.isnull(v):
                 peaks_list.append(v)
-        
+
+        for i, v in enumerate(peaks_list):
+            successive_highs = self.get_successive_highs(peaks_list, i, 4)
 
     @staticmethod
     def nice_peak(df):
@@ -61,7 +67,7 @@ class RsiDivergence:
         # Find local peaks
         # df['min'] = df.data[(df.data.shift(1) > df.data) & (df.data.shift(-1) > df.data)]
         df['max'] = df.data[(df.data.shift(1) < df.data) & (df.data.shift(-1) < df.data) & self.nice_peak(df)]
-        # self.higher_highs(df['max'])
+        self.higher_highs(df['max'])
         # Plot results
         # plt.scatter(df.index, df['min'], c='r')
         plt.scatter(df.index, df['max'], c='g')
