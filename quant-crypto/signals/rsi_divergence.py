@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import itertools
+import datetime
 
 
 def nice_angle(a, b, c):
@@ -24,7 +25,7 @@ class RsiDivergence:
     def get_successive_highs(self, peaks, position, minimum_range):
         highs = []
         for i in range(minimum_range + position, len(peaks)):
-            if peaks[i] > peaks[position]:
+            if not pd.isnull(peaks[i]) and peaks[i] > peaks[position]:
                 highs.append(i)
         return highs
 
@@ -35,13 +36,13 @@ class RsiDivergence:
         a = peaks
         peaks_list = list()  # [v for i, v in peaks.item() if (not pd.isnull(v))]
         higher_highs = list()
-
-        for i, v in peaks.items():
-            if not pd.isnull(v):
-                peaks_list.append(v)
+        #
+        # for i, v in peaks.items():
+        #     if not pd.isnull(v):
+        #         peaks_list.append(v)
 
         for i, v in enumerate(peaks_list):
-            successive_highs = self.get_successive_highs(peaks_list, i, 4)
+            successive_highs = self.get_successive_highs(peaks, i, 4)
 
     @staticmethod
     def nice_peak(df):
@@ -55,21 +56,40 @@ class RsiDivergence:
 
     def peaks(self, data):
         # Generate a noisy AR(1) sample
-        np.random.seed(0)
+        start_date = datetime.datetime.fromtimestamp(int(float(data[0][0]) / 1000))
+        end_date = datetime.datetime.fromtimestamp(int(float(data[len(data) - 1][0]) / 1000))
+        index = pd.date_range(start_date, end_date, freq='1D')
 
-        rs = data
-        xs = []
-        for r in rs:
-            xs.append(float(r))
+        closes = []
+        opens = []
+        volume = []
+        highs = []
+        lows = []
 
-        df = pd.DataFrame(xs, columns=['data'])
+        for record in data:
+            opens.append(int(float(record[1])))
+            highs.append(int(float(record[2])))
+            lows.append(int(float(record[3])))
+            closes.append(int(float(record[4])))
+            volume.append(int(float(record[5])))
+
+        df = pd.DataFrame({
+            'open': opens,
+            'high': highs,
+            'low': lows,
+            'close': closes
+        }, index=index)
+
 
         # Find local peaks
         # df['min'] = df.data[(df.data.shift(1) > df.data) & (df.data.shift(-1) > df.data)]
-        df['max'] = df.data[(df.data.shift(1) < df.data) & (df.data.shift(-1) < df.data) & self.nice_peak(df)]
-        self.higher_highs(df['max'])
+        df['max'] = df.close[(df.close.shift(1) < df.close) & (df.close.shift(-1) < df.close)]
+        # self.higher_highs(df['max'])
         # Plot results
         # plt.scatter(df.index, df['min'], c='r')
-        plt.scatter(df.index, df['max'], c='g')
-        df.data.plot()
+        # plt.scatter(df.index, df['max'], c='g')
+
+        # df.Time = df.Time.dt.time
+        df.plot.scatter(df['max'])
+        df.plot.line()
         plt.show()

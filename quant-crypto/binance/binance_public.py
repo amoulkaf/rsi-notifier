@@ -60,5 +60,8 @@ class BinancePublicClient:
         records = self.get_records(ticker, timeframe, interval, lookback)
         return list([record[5] for record in records])
 
+    def get_all_data(self, ticker, timeframe, interval, lookback):
+        return self.get_records(ticker, timeframe, interval, lookback)
+
 
 

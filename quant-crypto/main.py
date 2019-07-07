@@ -45,7 +45,7 @@ from signals.rsi_divergence import RsiDivergence
 
 def main():
     client = BinancePublicClient('https://binance.com')
-    response = client.get_closes(ticker='BTCUSDT', timeframe=Timeframe.HOUR, interval=1, lookback=200)
+    response = client.get_all_data(ticker='BTCUSDT', timeframe=Timeframe.DAY, interval=1, lookback=200)
     rsi_divergence = RsiDivergence()
     rsi_divergence.peaks(response)
 

@@ -38,7 +38,7 @@ def macross(df, kind, length, append=True,last=68):
 
 def main():
     client = BinancePublicClient('https://binance.com')
-    records = client.get_records(ticker='BTCUSDT', timeframe=Timeframe.HOUR, interval=1, lookback=400)
+    records = client.get_records(ticker='BTCUSDT', timeframe=Timeframe.DAY, interval=1, lookback=400)
     closes = []
     opens = []
     volume = []
@@ -47,6 +47,7 @@ def main():
     start_date = datetime.fromtimestamp(int(float(records[0][0]) / 1000))
     end_date = datetime.fromtimestamp(int(float(records[len(records) - 1][0]) / 1000))
     index = pd.date_range(start_date, end_date, freq='1H')
+
     for record in records:
         opens.append(int(float(record[1])))
         highs.append(int(float(record[2])))
@@ -66,10 +67,10 @@ def main():
     df.set_index('index')
     df.name = 'BTCUSDT'
     df.ta.constants(True, -4, 4)
-    df.tail()
+    line = df.plot.line()
     #machart(df, 'ema', 50, 100, 50)
     macross(df, 'ema', 50)
-    plt.show()
+    line.show()
 
 
 
