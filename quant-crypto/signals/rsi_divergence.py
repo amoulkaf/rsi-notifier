@@ -58,7 +58,7 @@ class RsiDivergence:
         # Generate a noisy AR(1) sample
         start_date = datetime.datetime.fromtimestamp(int(float(data[0][0]) / 1000))
         end_date = datetime.datetime.fromtimestamp(int(float(data[len(data) - 1][0]) / 1000))
-        index = pd.date_range(start_date, end_date, freq='1D')
+        date_range = pd.date_range(start_date, end_date, freq='1D')
 
         closes = []
         opens = []
@@ -74,22 +74,23 @@ class RsiDivergence:
             volume.append(int(float(record[5])))
 
         df = pd.DataFrame({
-            'open': opens,
-            'high': highs,
-            'low': lows,
-            'close': closes
-        }, index=index)
-
+            'close': closes,
+            'date': date_range
+        })
 
         # Find local peaks
         # df['min'] = df.data[(df.data.shift(1) > df.data) & (df.data.shift(-1) > df.data)]
         df['max'] = df.close[(df.close.shift(1) < df.close) & (df.close.shift(-1) < df.close)]
+        for i in range(0, df.size):
+        df['highs'] = df[df.max > 1000]
+
         # self.higher_highs(df['max'])
         # Plot results
         # plt.scatter(df.index, df['min'], c='r')
-        # plt.scatter(df.index, df['max'], c='g')
-
+        # df.plot.scatter(df.index, df['max'], c='g')
+        print(df.head)
         # df.Time = df.Time.dt.time
-        df.plot.scatter(df['max'])
+        # df.plot.scatter(df['max'])
+        df.set_index('date', inplace=True)
         df.plot.line()
         plt.show()
