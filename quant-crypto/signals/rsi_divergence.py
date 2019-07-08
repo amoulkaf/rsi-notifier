@@ -81,8 +81,15 @@ class RsiDivergence:
         # Find local peaks
         # df['min'] = df.data[(df.data.shift(1) > df.data) & (df.data.shift(-1) > df.data)]
         df['max'] = df.close[(df.close.shift(1) < df.close) & (df.close.shift(-1) < df.close)]
+
+        # df['highs'] = df[df['max']]['max']
+
+        higher_highs = list()
         for i in range(0, df.size):
-        df['highs'] = df[df.max > 1000]
+            higher_highs.append(pd.Series.tolist(df[['max']].tail(50)[df['max'] > 1000]))
+
+        # for i in range(0, df.size):
+        #     df['highs'] = df[df['max'].tail(i) > df['max'].loc(i)]['max']
 
         # self.higher_highs(df['max'])
         # Plot results
