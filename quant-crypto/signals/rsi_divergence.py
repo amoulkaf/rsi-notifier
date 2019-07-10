@@ -43,7 +43,9 @@ class RsiDivergence:
 
         for i, v in enumerate(peaks_list):
             successive_highs = self.get_successive_highs(peaks, i, 4)
-
+            higher_highs.append(successive_highs)
+        return higher_highs
+    
     @staticmethod
     def nice_peak(df):
         # tries to select only peaks that have a minimum of variation compared to they right and left points
@@ -85,8 +87,8 @@ class RsiDivergence:
         # df['highs'] = df[df['max']]['max']
 
         higher_highs = list()
-        for i in range(0, df.size):
-            higher_highs.append(pd.Series.tolist(df[['max']].tail(50)[df['max'] > 1000]))
+        for i in range(0, (df.size - 1)):
+            higher_highs.append(pd.Series.tolist(df[['max']].tail(50)[df['max'] > df.iloc[i]['max']]))
 
         # for i in range(0, df.size):
         #     df['highs'] = df[df['max'].tail(i) > df['max'].loc(i)]['max']
