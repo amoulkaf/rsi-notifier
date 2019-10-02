@@ -3,6 +3,7 @@ import json
 import time
 import numpy as np
 import pandas as pd
+from pandas.plotting import register_matplotlib_converters
 import datetime
 from .timeframe import Timeframe
 
@@ -65,12 +66,14 @@ class BinancePublicClient:
         return list([record[5] for record in records])
 
     def get_all_data(self, ticker, timeframe, interval, lookback):
+        register_matplotlib_converters()
         records = self.get_records(ticker, timeframe, interval, lookback)
         start_date = datetime.datetime.fromtimestamp(int(float(records[0][0]) / 1000))
         end_date = datetime.datetime.fromtimestamp(int(float(records[len(records) - 1][0]) / 1000))
         date_range = pd.date_range(start_date, end_date, freq='1D')
         for i in range(len(records)):
-            records[i] = records[i][1:6]
+            records[i] = [float(x) for x in records[i][1:6]]
+
         df = pd.DataFrame.from_records(records, date_range, columns=["opens", "highs", "lows", "closes", "volume"])
         return df
 
