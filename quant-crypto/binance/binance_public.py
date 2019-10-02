@@ -1,6 +1,9 @@
 import requests
 import json
 import time
+import numpy as np
+import pandas as pd
+import datetime
 from .timeframe import Timeframe
 
 
@@ -15,7 +18,8 @@ class BinancePublicClient:
     def __init__(self, endpoint):
         self.endpoint = endpoint
 
-    def test_connectivity(self):
+    @staticmethod
+    def test_connectivity():
         r = requests.get('https://binance.com/api/v1/ping')
         return r.status_code
 
@@ -36,7 +40,7 @@ class BinancePublicClient:
         if not isinstance(timeframe, Timeframe):
             raise TypeError('timeframe must be an instance of Timeframe Enum')
 
-        return self._get_records_api(ticker='BTCUSDT', interval=('{}{}'.format(interval, timeframe.value[0])),
+        return self._get_records_api(ticker=ticker, interval=('{}{}'.format(interval, timeframe.value[0])),
                                  start_date=(now - (timeframe.value[1] * lookback)),
                                  end_date=now)
 
@@ -61,7 +65,17 @@ class BinancePublicClient:
         return list([record[5] for record in records])
 
     def get_all_data(self, ticker, timeframe, interval, lookback):
-        return self.get_records(ticker, timeframe, interval, lookback)
+        records = self.get_records(ticker, timeframe, interval, lookback)
+        start_date = datetime.datetime.fromtimestamp(int(float(records[0][0]) / 1000))
+        end_date = datetime.datetime.fromtimestamp(int(float(records[len(records) - 1][0]) / 1000))
+        date_range = pd.date_range(start_date, end_date, freq='1D')
+        for i in range(len(records)):
+            records[i] = records[i][1:6]
+        df = pd.DataFrame.from_records(records, date_range, columns=["opens", "highs", "lows", "closes", "volume"])
+        return df
+
+
+
 
 
 
