@@ -73,7 +73,6 @@ class BinancePublicClient:
         date_range = pd.date_range(start_date, end_date, freq='1D')
         for i in range(len(records)):
             records[i] = [float(x) for x in records[i][1:6]]
-
         df = pd.DataFrame.from_records(records, date_range, columns=["opens", "highs", "lows", "closes", "volume"])
         return df
 
