@@ -1,12 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal
-import seaborn as sb
 import pandas as pd
 import pandas_ta as ta
-import datetime
-
-from binance.timeframe import Timeframe
 
 
 class Graph:
@@ -57,5 +53,35 @@ class Graph:
         ax2.plot(index, indicator)
         ax1.get_shared_x_axes().join(ax1, ax2)
         plt.show()
+
+    def emascross(self, plot=False):
+        df = self.df
+        df['twentyema'] = ta.ema(df['closes'], 20)
+        df['fiftyema'] = ta.ema(df['closes'], 50)
+        # select 20 ema points where current 20 ema is below 50 ema , and previous 20 ema is above 50 ema
+        df['bearishemaC'] = df[(df['twentyema'] < df['fiftyema']) & (df['twentyema'].shift(1) > df['fiftyema'].shift(1))]['twentyema']
+        df['bullishemaC'] = df[(df['twentyema'] > df['fiftyema']) & (df['twentyema'].shift(1) < df['fiftyema'].shift(1))]['twentyema']
+        if plot:
+            plt.plot(df.index,df['closes'])
+            plt.plot(df.index, df['twentyema'], color='green')
+            plt.plot(df.index, df['fiftyema'], color='red')
+            plt.scatter(df.index, df['bullishemaC'], color='yellow')
+            plt.scatter(df.index, df['bearishemaC'], color='black')
+            plt.show()
+
+    def emapricecross(self, plot=False):
+        df = self.df
+        df['longema'] = ta.ema(df['closes'], 200)
+        #select longema points where current ema is above close , and previous ema is below close
+        df['bullishemaPC'] = df[(df['longema'] < df['closes']) & (df['longema'].shift(1) > df['closes'].shift(1))]['longema']
+        df['bearishemaPC'] = df[(df['longema'] > df['closes']) & (df['longema'].shift(1) < df['closes'].shift(1))]['longema']
+        if plot:
+            plt.plot(df.index, df['closes'])
+            plt.plot(df.index, df['longema'], color='black')
+            plt.scatter(df.index, df['bullishemaPC'], color='yellow')
+            plt.scatter(df.index, df['bearishemaPC'], color='red')
+            plt.show()
+
+
 
 
