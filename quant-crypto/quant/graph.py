@@ -26,14 +26,14 @@ class Graph:
         idx = df.index.name
         df.reset_index(inplace=True)
         ha_open = [(df['opens'][0] + df['closes'][0]) / 2]
-        [ha_open.append((ha_open[i] + df['HA_Close'].values[i]) / 2) \
+        [ha_open.append((ha_open[i] + df['HA_Close'].values[i]) / 2)\
          for i in range(0, len(df) - 1)]
         df['HA_Open'] = ha_open
         df.set_index('index', inplace=True)
         df['HA_High'] = df[['HA_Open', 'HA_Close', 'highs']].max(axis=1)
         df['HA_Low'] = df[['HA_Open', 'HA_Close', 'lows']].min(axis=1)
 
-    def bullishRsi(self, plot = False):
+    def bullishRsi(self):
         df = self.df
         closes = df['closes'].as_matrix()
         lpeaks = scipy.signal.argrelmin(closes, order=self.order)
@@ -46,11 +46,9 @@ class Graph:
         ldf["Lpeaksdif"] = ldf["Lpeaks"] - ldf["Lpeaks"].shift(1)
         ldf["Lrsidiv"] = ((ldf["rsidif"] > 0) & (ldf["Lpeaksdif"] < 0))
         df["Lrsidiv"] = ldf[ldf['Lrsidiv'] == True]['Lpeaks']
-        if plot:
-            self.plotIndicator(df.index, df['closes'], df['rsi'], df['Lrsidiv'])
         return ldf["Lrsidiv"]
 
-    def bearishRsi(self, plot = False):
+    def bearishRsi(self):
         df = self.df
         closes = df['closes'].as_matrix()
         hpeaks = scipy.signal.argrelmax(closes, order=self.order)
@@ -63,34 +61,15 @@ class Graph:
         hdf["Hpeaksdif"] = hdf["Hpeaks"] - hdf["Hpeaks"].shift(1)
         hdf["Hrsidiv"] = ((hdf["rsidif"] < 0) & (hdf["Hpeaksdif"] > 0))
         df["Hrsidiv"] = hdf[hdf['Hrsidiv'] == True]['Hpeaks']
-        if plot:
-            self.plotIndicator(df.index, df['closes'], df['rsi'], df['Hrsidiv'])
         return hdf["Hrsidiv"]
 
-    @staticmethod
-    def plotIndicator(index, price, indicator, peaks=None):
-        fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True,gridspec_kw={'width_ratios': [0.7]})
-        ax1.plot(index, price)
-        if peaks is not None:
-            ax1.scatter(index, peaks)
-        ax2.plot(index, indicator)
-        ax1.get_shared_x_axes().join(ax1, ax2)
-        plt.show()
-
-    def emascross(self, plot=False):
+    def emascross(self):
         df = self.df
         df['twentyema'] = ta.ema(df['closes'], 20)
         df['fiftyema'] = ta.ema(df['closes'], 50)
         # select 20 ema points where current 20 ema is below 50 ema , and previous 20 ema is above 50 ema
         df['bearishemaC'] = df[(df['twentyema'] < df['fiftyema']) & (df['twentyema'].shift(1) > df['fiftyema'].shift(1))]['twentyema']
         df['bullishemaC'] = df[(df['twentyema'] > df['fiftyema']) & (df['twentyema'].shift(1) < df['fiftyema'].shift(1))]['twentyema']
-        if plot:
-            plt.plot(df.index,df['closes'])
-            plt.plot(df.index, df['twentyema'], color='green')
-            plt.plot(df.index, df['fiftyema'], color='red')
-            plt.scatter(df.index, df['bullishemaC'], color='yellow')
-            plt.scatter(df.index, df['bearishemaC'], color='black')
-            plt.show()
 
     def emapricecross(self):
         df = self.df
@@ -100,7 +79,7 @@ class Graph:
         df['bearishemaPC'] = df[(df['longema'] > df['closes']) & (df['longema'].shift(1) < df['closes'].shift(1))]['longema']
 
     def ichimokucloud(self):
-        self.ichimoku, self.spandf = ta.ichimoku(self.df['highs'], self.df['lows'], self.df['closes'], 20, 60, 120)
+        self.ichimoku, self.spandf = ta.ichimoku(self.df['highs'], self.df['lows'], self.df['closes'], 20, 60, 120,30)
 
     def plotChart(self, ha=False, emapc=False, emac=False, rsi=False):
         df= self.df
@@ -184,6 +163,7 @@ class Graph:
             fig['layout']['yaxis2'].update(domain=[0.7, 1])
         else:
             fig['layout']['yaxis1'].update(domain=[0, 1])
+
         fig.write_html('first_figure.html', auto_open=True)
 
 
