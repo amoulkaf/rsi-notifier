@@ -4,7 +4,6 @@ import pandas as pd
 import pandas_ta as ta
 import numpy
 import scipy.signal
-import seaborn as sb
 
 import warnings
 
@@ -17,7 +16,7 @@ from quant.graph import Graph
 def main():
     client = BinancePublicClient('https://binance.com')
     dailyBtc = Graph(client, ticker='BTCUSDT', timeframe=Timeframe.DAY, interval=1, lookback=800, order = 4)
-    dailyBtc.plotChart(HA=True)
+    dailyBtc.plotChart( False, True, True, True)
 
 
 

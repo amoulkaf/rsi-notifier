@@ -16,11 +16,10 @@ class Graph:
         self.ichimoku = None
         self.spandf = None
 
-
-    def tocsv(self):
+    def to_csv(self):
         self.df.to_csv(r'.\data\eth.csv')
 
-    def heikenAshi(self):
+    def heiken_ashi(self):
         df = self.df
         df['HA_Close']= (df['closes']+ df['opens']+ df['highs']+ df['lows'])/4
         idx = df.index.name
@@ -33,7 +32,7 @@ class Graph:
         df['HA_High'] = df[['HA_Open', 'HA_Close', 'highs']].max(axis=1)
         df['HA_Low'] = df[['HA_Open', 'HA_Close', 'lows']].min(axis=1)
 
-    def bullishRsi(self):
+    def bullish_rsi(self):
         df = self.df
         closes = df['closes'].as_matrix()
         lpeaks = scipy.signal.argrelmin(closes, order=self.order)
@@ -48,7 +47,7 @@ class Graph:
         df["Lrsidiv"] = ldf[ldf['Lrsidiv'] == True]['Lpeaks']
         return ldf["Lrsidiv"]
 
-    def bearishRsi(self):
+    def bearish_rsi(self):
         df = self.df
         closes = df['closes'].as_matrix()
         hpeaks = scipy.signal.argrelmax(closes, order=self.order)
@@ -63,7 +62,7 @@ class Graph:
         df["Hrsidiv"] = hdf[hdf['Hrsidiv'] == True]['Hpeaks']
         return hdf["Hrsidiv"]
 
-    def emascross(self):
+    def emas_cross(self):
         df = self.df
         df['twentyema'] = ta.ema(df['closes'], 20)
         df['fiftyema'] = ta.ema(df['closes'], 50)
@@ -71,7 +70,7 @@ class Graph:
         df['bearishemaC'] = df[(df['twentyema'] < df['fiftyema']) & (df['twentyema'].shift(1) > df['fiftyema'].shift(1))]['twentyema']
         df['bullishemaC'] = df[(df['twentyema'] > df['fiftyema']) & (df['twentyema'].shift(1) < df['fiftyema'].shift(1))]['twentyema']
 
-    def emapricecross(self):
+    def ema_price_cross(self):
         df = self.df
         df['longema'] = ta.ema(df['closes'], 200)
         #select longema points where current ema is above close , and previous ema is below close
@@ -87,7 +86,7 @@ class Graph:
                             shared_xaxes=True)
         if ha:
             if not ('HA_Close' in df):
-                self.heikenAshi()
+                self.heiken_ashi()
             main = go.Figure(data=[go.Candlestick(x=df.index,
                                                  open=df['HA_Open'],
                                                  high=df['HA_High'],
@@ -102,7 +101,7 @@ class Graph:
         fig.append_trace(main, 1, 1)
         if emapc:
             if not ('bullishemaPC' in df):
-                self.emapricecross()
+                self.ema_price_cross()
             fig.add_trace(go.Scatter(x=df.index, y=df['longema'],
                                      mode='lines',
                                      line_color='red',
@@ -119,7 +118,7 @@ class Graph:
                                      name='bearishemaPC'))
         if emac:
             if not ('twentyema' in df):
-                self.emascross()
+                self.emas_cross()
             fig.add_trace(go.Scatter(x=df.index, y=df['twentyema'],
                                      mode='lines',
                                      line_color='blue',
@@ -141,8 +140,8 @@ class Graph:
 # main chart end
         if rsi:
             if not ('Lrsidiv' in df or 'Hrsidiv' in df):
-                self.bearishRsi()
-                self.bullishRsi()
+                self.bearish_rsi()
+                self.bullish_rsi()
             rsip = go.Scatter(
                 x=df.index,
                 y=df['rsi'],
