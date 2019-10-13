@@ -4,6 +4,7 @@ import scipy.signal
 import pandas as pd
 import pandas_ta as ta
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 class Graph:
     def __init__(self, client, ticker, timeframe, interval = 1, lookback=200, order = 3, fromcsv=False):
@@ -91,56 +92,98 @@ class Graph:
             plt.scatter(df.index, df['bearishemaC'], color='black')
             plt.show()
 
-    def emapricecross(self, plot=False):
+    def emapricecross(self):
         df = self.df
         df['longema'] = ta.ema(df['closes'], 200)
         #select longema points where current ema is above close , and previous ema is below close
         df['bullishemaPC'] = df[(df['longema'] < df['closes']) & (df['longema'].shift(1) > df['closes'].shift(1))]['longema']
         df['bearishemaPC'] = df[(df['longema'] > df['closes']) & (df['longema'].shift(1) < df['closes'].shift(1))]['longema']
-        if plot:
-            plt.plot(df.index, df['closes'])
-            plt.plot(df.index, df['longema'], color='black')
-            plt.scatter(df.index, df['bullishemaPC'], color='yellow')
-            plt.scatter(df.index, df['bearishemaPC'], color='red')
-            plt.show()
 
     def ichimokucloud(self):
         self.ichimoku, self.spandf = ta.ichimoku(self.df['highs'], self.df['lows'], self.df['closes'], 20, 60, 120)
 
-    def plotChart(self, HA=False):
+    def plotChart(self, ha=False, emapc=False, emac=False, rsi=False):
         df= self.df
-        if HA:
-            if not ('HA_Close' in self.df):
+        fig = make_subplots(rows=2, cols=1,
+                            shared_xaxes=True)
+        if ha:
+            if not ('HA_Close' in df):
                 self.heikenAshi()
-            fig = go.Figure(data=[go.Candlestick(x=df.index,
+            main = go.Figure(data=[go.Candlestick(x=df.index,
                                                  open=df['HA_Open'],
                                                  high=df['HA_High'],
                                                  low=df['HA_Low'],
                                                  close=df['HA_Close'])])
         else:
-            fig = go.Figure(data=[go.Candlestick(x=df.index,
-                                                 open=df['opens'],
-                                                 high=df['highs'],
-                                                 low=df['lows'],
-                                                 close=df['closes'])])
-        # fig.add_trace(go.Scatter(x=df.index, y=self.ichimoku['ISA_20'],
-        #                          mode='lines',
-        #                          line_color='green',
-        #                          name='ISA_20'))
-        # fig.add_trace(go.Scatter(x=df.index, y=self.ichimoku['ISB_60'],
-        #                          mode='lines',
-        #                          fill='tonexty',
-        #                          line_color='red',
-        #                          name='ISB_60'))
-        # fig.add_trace(go.Scatter(x=df.index, y=self.ichimoku['ITS_20'],
-        #                          mode='lines',
-        #                          name='ITS_20'))
-        # fig.add_trace(go.Scatter(x=df.index, y=self.ichimoku['IKS_60'],
-        #                          mode='lines',
-        #                          name='IKS_60'))
-        # fig.add_trace(go.Scatter(x=df.index, y=self.ichimoku['ICS_60'],
-        #                          mode='lines',
-        #                          name='ICS_60'))
+            main = go.Candlestick(x=df.index,
+                                  open=df['opens'],
+                                  high=df['highs'],
+                                  low=df['lows'],
+                                  close=df['closes'])
+        fig.append_trace(main, 1, 1)
+        if emapc:
+            if not ('bullishemaPC' in df):
+                self.emapricecross()
+            fig.add_trace(go.Scatter(x=df.index, y=df['longema'],
+                                     mode='lines',
+                                     line_color='red',
+                                     name='longema'))
+            fig.add_trace(go.Scatter(x=df.index, y=df['bullishemaPC'],
+                                     mode='markers',
+                                     marker_size=10,
+                                     marker_color='rgba(255, 182, 193, .9)',
+                                     name='bullishemaPC'))
+            fig.add_trace(go.Scatter(x=df.index, y=df['bearishemaPC'],
+                                     mode='markers',
+                                     marker_size=10,
+                                     marker_color='rgba(152, 0, 0, .8)',
+                                     name='bearishemaPC'))
+        if emac:
+            if not ('twentyema' in df):
+                self.emascross()
+            fig.add_trace(go.Scatter(x=df.index, y=df['twentyema'],
+                                     mode='lines',
+                                     line_color='blue',
+                                     name='twentyema'))
+            fig.add_trace(go.Scatter(x=df.index, y=df['fiftyema'],
+                                     mode='lines',
+                                     line_color='orange',
+                                     name='fiftyema'))
+            fig.add_trace(go.Scatter(x=df.index, y=df['bearishemaC'],
+                                     mode='markers',
+                                     marker_size=5,
+                                     marker_color='rgba(152, 0, 0, .8)',
+                                     name='bearishemaC'))
+            fig.add_trace(go.Scatter(x=df.index, y=df['bullishemaC'],
+                                     mode='markers',
+                                     marker_size=5,
+                                     marker_color='rgba(255, 182, 193, .9)',
+                                     name='bullishemaC'))
+# main chart end
+        if rsi:
+            if not ('Lrsidiv' in df or 'Hrsidiv' in df):
+                self.bearishRsi()
+                self.bullishRsi()
+            rsip = go.Scatter(
+                x=df.index,
+                y=df['rsi'],
+                name='rsi'
+            )
+            fig.add_trace(go.Scatter(x=df.index, y=df['Lrsidiv'],
+                                      mode='markers',
+                                      marker_size=15,
+                                      marker_color='rgba(11, 156, 49, .9)',
+                                      name='bullish Rsi'))
+            fig.add_trace(go.Scatter(x=df.index, y=df['Hrsidiv'],
+                                      mode='markers',
+                                      marker_size=15,
+                                      marker_color='rgba(255, 20, 20, .9)',
+                                      name='bearish Rsi'))
+            fig.append_trace(rsip,2,1)
+            fig['layout']['yaxis1'].update(domain=[0, 0.7])
+            fig['layout']['yaxis2'].update(domain=[0.7, 1])
+        else:
+            fig['layout']['yaxis1'].update(domain=[0, 1])
         fig.write_html('first_figure.html', auto_open=True)
 
 
