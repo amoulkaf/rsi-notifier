@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 
-class Graph:
+class IndicatorAnalysis:
     def __init__(self, client, ticker, timeframe, interval=1, lookback=200, order=3, fromcsv=False):
         if fromcsv:
             self.df = pd.read_csv("./data/btc.csv")
@@ -14,9 +14,15 @@ class Graph:
             self.order = order
         self.ichimoku = None
         self.spandf = None
-
-    def to_csv(self):
-        self.df.to_csv(r'.\data\eth.csv')
+        closes = df['closes'].as_matrix()
+        lpeaks = scipy.signal.argrelmin(closes, order=self.order)
+        self.df['Lpeaks'] = None
+        for i in lpeaks[0]:
+            self.df['Lpeaks'].iloc[i] = self.df['closes'].iloc[i]
+        hpeaks = scipy.signal.argrelmax(closes, order=self.order)
+        self.df['Hpeaks'] = None
+        for i in hpeaks[0]:
+            self.df['Hpeaks'].iloc[i] = self.df['closes'].iloc[i]
 
     def heiken_ashi(self):
         df = self.df
@@ -33,11 +39,6 @@ class Graph:
 
     def bullish_rsi(self):
         df = self.df
-        closes = df['closes'].as_matrix()
-        lpeaks = scipy.signal.argrelmin(closes, order=self.order)
-        df['Lpeaks'] = None
-        for i in lpeaks[0]:
-            df['Lpeaks'].iloc[i] = df['closes'].iloc[i]
         df['rsi'] = ta.rsi(df['closes'])
         ldf = df[(df['Lpeaks'].notnull())]
         ldf["rsidif"] = ldf["rsi"] - ldf["rsi"].shift(1)
@@ -48,11 +49,6 @@ class Graph:
 
     def bearish_rsi(self):
         df = self.df
-        closes = df['closes'].as_matrix()
-        hpeaks = scipy.signal.argrelmax(closes, order=self.order)
-        df['Hpeaks'] = None
-        for i in hpeaks[0]:
-            df['Hpeaks'].iloc[i] = df['closes'].iloc[i]
         df['rsi'] = ta.rsi(df['closes'])
         hdf = df[(df['Hpeaks'].notnull())]
         hdf["rsidif"] = hdf["rsi"] - hdf["rsi"].shift(1)
@@ -80,8 +76,11 @@ class Graph:
         df['bearishemaPC'] = df[(df['longema'] > df['closes']) & (df['longema'].shift(1) < df['closes'].shift(1))][
             'longema']
 
-    def ichimoku_cloud(self):
-        self.ichimoku, self.spandf = ta.ichimoku(self.df['highs'], self.df['lows'], self.df['closes'], 20, 60, 120, 30)
+    def ichimoku_cloud(self,p1,p2,p3,p4):
+        self.ichimoku, self.spandf = ta.ichimoku(self.df['highs'], self.df['lows'], self.df['closes'], p1, p2, p3, p4)
+        self.spandf = self.spandf.shift(-31, freq='D')
+        print(self.ichimoku.tail())
+        print(self.spandf.head())
 
     def plot_chart(self, ha=False, emapc=False, emac=False, rsi=False):
         df = self.df
@@ -119,6 +118,7 @@ class Graph:
                                      marker_size=10,
                                      marker_color='rgba(152, 0, 0, .8)',
                                      name='bearishemaPC'))
+
         if emac:
             if not ('twentyema' in df):
                 self.emas_cross()
@@ -140,6 +140,33 @@ class Graph:
                                      marker_size=5,
                                      marker_color='rgba(255, 182, 193, .9)',
                                      name='bullishemaC'))
+        fig.add_trace(go.Scatter(x=self.ichimoku.index, y=self.ichimoku['ISA_20'],
+                                 mode='lines',
+                                 line_color='green',
+                                 name='ISA_20'))
+        fig.add_trace(go.Scatter(x=self.ichimoku.index, y=self.ichimoku['ISB_60'],
+                                 mode='lines',
+                                 fill='tonexty',
+                                 line_color='red',
+                                 name='ISB_60'))
+        fig.add_trace(go.Scatter(x=self.spandf.index, y=self.spandf['ISA_20'],
+                                 mode='lines',
+                                 line_color='green',
+                                 name='ISA_20'))
+        fig.add_trace(go.Scatter(x=self.spandf.index, y=self.spandf['ISB_60'],
+                                 mode='lines',
+                                 fill='tonexty',
+                                 line_color='red',
+                                 name='ISB_60'))
+        fig.add_trace(go.Scatter(x=self.ichimoku.index, y=self.ichimoku['ITS_20'],
+                                 mode='lines',
+                                 name='ITS_20'))
+        fig.add_trace(go.Scatter(x=self.ichimoku.index, y=self.ichimoku['IKS_60'],
+                                 mode='lines',
+                                 name='IKS_60'))
+        fig.add_trace(go.Scatter(x=self.ichimoku.index, y=self.ichimoku['ICS_60'],
+                                 mode='lines',
+                                 name='ICS_60'))
         # main chart end
         if rsi:
             if not ('Lrsidiv' in df or 'Hrsidiv' in df):
