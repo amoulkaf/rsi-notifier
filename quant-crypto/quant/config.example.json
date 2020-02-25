@@ -1,0 +1,14 @@
+{
+  "gmail":
+    {
+      "user": "gmailuser",
+      "password": "gmailpassword"
+    },
+  "s3":
+    {
+      "bucket_name": "bucketname",
+      "bucket_region": "bucketregion"
+    },
+  "subscribers":
+          ["test1@gmail.com" , "test2@gmail.com"]
+}

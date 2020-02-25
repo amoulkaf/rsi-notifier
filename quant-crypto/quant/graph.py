@@ -1,28 +1,37 @@
 import scipy.signal
+import numpy as np
 import pandas as pd
 import pandas_ta as ta
+import talib.abstract as tal
 import plotly.graph_objects as go
+import smtplib
+from .notification import notification
 from plotly.subplots import make_subplots
+import logging
+import boto3
+import json
+
+with open('./quant/config.json') as json_file:
+    data = json.load(json_file)
+    BUCKET_NAME = data['s3']['bucket_name']
+    BUCKET_REGION = data['s3']['bucket_region']
 
 
 class IndicatorAnalysis:
     def __init__(self, client, ticker, timeframe, interval=1, lookback=200, order=3, fromcsv=False):
         if fromcsv:
-            self.df = pd.read_csv("./data/btc.csv")
+            self.df = pd.read_csv("./data/{}.csv".format(ticker))
         else:
-            self.df = client.get_all_data(ticker=ticker, timeframe=timeframe, interval=interval, lookback=lookback)
-            self.order = order
-        self.ichimoku = None
-        self.spandf = None
-        closes = df['closes'].as_matrix()
-        lpeaks = scipy.signal.argrelmin(closes, order=self.order)
-        self.df['Lpeaks'] = None
-        for i in lpeaks[0]:
-            self.df['Lpeaks'].iloc[i] = self.df['closes'].iloc[i]
-        hpeaks = scipy.signal.argrelmax(closes, order=self.order)
-        self.df['Hpeaks'] = None
-        for i in hpeaks[0]:
-            self.df['Hpeaks'].iloc[i] = self.df['closes'].iloc[i]
+            self.df = client.get_all_data(ticker=ticker, timeframe=timeframe, interval=interval, lookback=lookback*interval)
+        self.order = order
+        self.ticker = ticker
+        self.timeframe = timeframe
+        self.interval = interval
+        self.lpeaks = scipy.signal.argrelmin(self.df['closes'].values, order=self.order)
+        self.hpeaks = scipy.signal.argrelmax(self.df['closes'].values, order=self.order)
+
+
+        self.rsi_divergence()
 
     def heiken_ashi(self):
         df = self.df
@@ -37,25 +46,26 @@ class IndicatorAnalysis:
         df['HA_High'] = df[['HA_Open', 'HA_Close', 'highs']].max(axis=1)
         df['HA_Low'] = df[['HA_Open', 'HA_Close', 'lows']].min(axis=1)
 
-    def bullish_rsi(self):
+    def rsi_divergence(self):
         df = self.df
-        df['rsi'] = ta.rsi(df['closes'])
-        ldf = df[(df['Lpeaks'].notnull())]
-        ldf["rsidif"] = ldf["rsi"] - ldf["rsi"].shift(1)
-        ldf["Lpeaksdif"] = ldf["Lpeaks"] - ldf["Lpeaks"].shift(1)
-        ldf["Lrsidiv"] = ((ldf["rsidif"] > 0) & (ldf["Lpeaksdif"] < 0))
-        df["Lrsidiv"] = ldf[ldf['Lrsidiv'] == True]['Lpeaks']
-        return ldf["Lrsidiv"]
+        df['close'] = df['closes']
+        df['rsi'] = tal.RSI(df)
 
-    def bearish_rsi(self):
-        df = self.df
-        df['rsi'] = ta.rsi(df['closes'])
-        hdf = df[(df['Hpeaks'].notnull())]
-        hdf["rsidif"] = hdf["rsi"] - hdf["rsi"].shift(1)
-        hdf["Hpeaksdif"] = hdf["Hpeaks"] - hdf["Hpeaks"].shift(1)
-        hdf["Hrsidiv"] = ((hdf["rsidif"] < 0) & (hdf["Hpeaksdif"] > 0))
-        df["Hrsidiv"] = hdf[hdf['Hrsidiv'] == True]['Hpeaks']
-        return hdf["Hrsidiv"]
+        df['Lpeaksdif'] = df.iloc[self.lpeaks[0]]['close'] - df.iloc[self.lpeaks[0]]['close'].shift(1)
+        df['Lrsidif'] = df.iloc[self.lpeaks[0]]['rsi'] - df.iloc[self.lpeaks[0]]['rsi'].shift(1)
+        df['Lrsidiv'] = (df['Lrsidif'] > 0) & (df['Lpeaksdif'] < 0)
+        df['Lrsidiv'] = df[df['Lrsidiv']==True]['close']
+        #
+        df['Hpeaksdif'] = df.iloc[self.hpeaks[0]]['close'] - df.iloc[self.hpeaks[0]]['close'].shift(1)
+        df['Hrsidif'] = df.iloc[self.hpeaks[0]]['rsi'] - df.iloc[self.hpeaks[0]]['rsi'].shift(1)
+        df['Hrsidiv'] = (df['Hrsidif'] > 0) & (df['Hpeaksdif'] < 0)
+        df['Hrsidiv'] = df[(df['Hrsidif'] < 0) & (df['Hpeaksdif'] > 0)]['close']
+
+
+        if not np.isnan(df["Lrsidiv"].iloc[1-self.order]):
+            notification("bullish rsi divergence", self.ticker, self.interval, self.timeframe, self.plot_chart())
+        if not np.isnan(df["Hrsidiv"].iloc[1 - self.order]):
+            notification("bearish rsi divergence", self.ticker, self.interval, self.timeframe, self.plot_chart())
 
     def emas_cross(self):
         df = self.df
@@ -76,13 +86,8 @@ class IndicatorAnalysis:
         df['bearishemaPC'] = df[(df['longema'] > df['closes']) & (df['longema'].shift(1) < df['closes'].shift(1))][
             'longema']
 
-    def ichimoku_cloud(self,p1,p2,p3,p4):
-        self.ichimoku, self.spandf = ta.ichimoku(self.df['highs'], self.df['lows'], self.df['closes'], p1, p2, p3, p4)
-        self.spandf = self.spandf.shift(-31, freq='D')
-        print(self.ichimoku.tail())
-        print(self.spandf.head())
 
-    def plot_chart(self, ha=False, emapc=False, emac=False, rsi=False):
+    def plot_chart(self, ha=False, emapc=False, emac=False, rsi=True):
         df = self.df
         fig = make_subplots(rows=2, cols=1,
                             shared_xaxes=True)
@@ -140,38 +145,10 @@ class IndicatorAnalysis:
                                      marker_size=5,
                                      marker_color='rgba(255, 182, 193, .9)',
                                      name='bullishemaC'))
-        fig.add_trace(go.Scatter(x=self.ichimoku.index, y=self.ichimoku['ISA_20'],
-                                 mode='lines',
-                                 line_color='green',
-                                 name='ISA_20'))
-        fig.add_trace(go.Scatter(x=self.ichimoku.index, y=self.ichimoku['ISB_60'],
-                                 mode='lines',
-                                 fill='tonexty',
-                                 line_color='red',
-                                 name='ISB_60'))
-        fig.add_trace(go.Scatter(x=self.spandf.index, y=self.spandf['ISA_20'],
-                                 mode='lines',
-                                 line_color='green',
-                                 name='ISA_20'))
-        fig.add_trace(go.Scatter(x=self.spandf.index, y=self.spandf['ISB_60'],
-                                 mode='lines',
-                                 fill='tonexty',
-                                 line_color='red',
-                                 name='ISB_60'))
-        fig.add_trace(go.Scatter(x=self.ichimoku.index, y=self.ichimoku['ITS_20'],
-                                 mode='lines',
-                                 name='ITS_20'))
-        fig.add_trace(go.Scatter(x=self.ichimoku.index, y=self.ichimoku['IKS_60'],
-                                 mode='lines',
-                                 name='IKS_60'))
-        fig.add_trace(go.Scatter(x=self.ichimoku.index, y=self.ichimoku['ICS_60'],
-                                 mode='lines',
-                                 name='ICS_60'))
+
         # main chart end
         if rsi:
-            if not ('Lrsidiv' in df or 'Hrsidiv' in df):
-                self.bearish_rsi()
-                self.bullish_rsi()
+
             rsip = go.Scatter(
                 x=df.index,
                 y=df['rsi'],
@@ -192,5 +169,8 @@ class IndicatorAnalysis:
             fig['layout']['yaxis2'].update(domain=[0.7, 1])
         else:
             fig['layout']['yaxis1'].update(domain=[0, 1])
-
-        fig.write_html('first_figure.html', auto_open=True)
+        filename = self.ticker+self.timeframe.name + str(self.interval) + '.html'
+        fig.write_html(filename, auto_open=True)
+        s3 = boto3.client('s3')
+        s3.upload_file(filename, BUCKET_NAME, filename ,ExtraArgs={'ContentType': 'text/html'})
+        return "https://" + BUCKET_NAME+".s3."+BUCKET_REGION+".amazonaws.com/" + filename
