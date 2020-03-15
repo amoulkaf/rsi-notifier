@@ -18,17 +18,21 @@ with open('./quant/config.json') as json_file:
 
 
 class IndicatorAnalysis:
-    def __init__(self, client, ticker, timeframe, interval=1, lookback=200, order=3, fromcsv=False):
+    def __init__(self, client, ticker, timeframe, interval=1, lookback=200, order=5, fromcsv=False):
         if fromcsv:
-            self.df = pd.read_csv("./data/{}.csv".format(ticker))
+            df = pd.read_csv("./data/{}.csv".format(ticker))
         else:
-            self.df = client.get_all_data(ticker=ticker, timeframe=timeframe, interval=interval, lookback=lookback*interval)
+            df = client.get_all_data(ticker=ticker, timeframe=timeframe, interval=interval, lookback=lookback*interval)
+        self.df = df.drop(df.index[-1])
         self.order = order
         self.ticker = ticker
         self.timeframe = timeframe
         self.interval = interval
+
         self.lpeaks = scipy.signal.argrelmin(self.df['closes'].values, order=self.order)
         self.hpeaks = scipy.signal.argrelmax(self.df['closes'].values, order=self.order)
+        self.df['twentyema'] = ta.ema(self.df['closes'], 20)
+        self.df['fiftyema'] = ta.ema(self.df['closes'], 50)
 
 
         self.rsi_divergence()
@@ -56,6 +60,7 @@ class IndicatorAnalysis:
         df['Lrsidiv'] = (df['Lrsidif'] > 0) & (df['Lpeaksdif'] < 0)
         df['Lrsidiv'] = df[df['Lrsidiv']==True]['close']
         #
+
         df['Hpeaksdif'] = df.iloc[self.hpeaks[0]]['close'] - df.iloc[self.hpeaks[0]]['close'].shift(1)
         df['Hrsidif'] = df.iloc[self.hpeaks[0]]['rsi'] - df.iloc[self.hpeaks[0]]['rsi'].shift(1)
         df['Hrsidiv'] = (df['Hrsidif'] > 0) & (df['Hpeaksdif'] < 0)
@@ -69,8 +74,6 @@ class IndicatorAnalysis:
 
     def emas_cross(self):
         df = self.df
-        df['twentyema'] = ta.ema(df['closes'], 20)
-        df['fiftyema'] = ta.ema(df['closes'], 50)
         # select 20 ema points where current 20 ema is below 50 ema , and previous 20 ema is above 50 ema
         df['bearishemaC'] = \
         df[(df['twentyema'] < df['fiftyema']) & (df['twentyema'].shift(1) > df['fiftyema'].shift(1))]['twentyema']
@@ -124,27 +127,17 @@ class IndicatorAnalysis:
                                      marker_color='rgba(152, 0, 0, .8)',
                                      name='bearishemaPC'))
 
-        if emac:
-            if not ('twentyema' in df):
-                self.emas_cross()
-            fig.add_trace(go.Scatter(x=df.index, y=df['twentyema'],
-                                     mode='lines',
-                                     line_color='blue',
-                                     name='twentyema'))
-            fig.add_trace(go.Scatter(x=df.index, y=df['fiftyema'],
-                                     mode='lines',
-                                     line_color='orange',
-                                     name='fiftyema'))
-            fig.add_trace(go.Scatter(x=df.index, y=df['bearishemaC'],
-                                     mode='markers',
-                                     marker_size=5,
-                                     marker_color='rgba(152, 0, 0, .8)',
-                                     name='bearishemaC'))
-            fig.add_trace(go.Scatter(x=df.index, y=df['bullishemaC'],
-                                     mode='markers',
-                                     marker_size=5,
-                                     marker_color='rgba(255, 182, 193, .9)',
-                                     name='bullishemaC'))
+
+
+        fig.add_trace(go.Scatter(x=df.index, y=df['twentyema'],
+                                 mode='lines',
+                                 line_color='blue',
+                                 name='twentyema'))
+        fig.add_trace(go.Scatter(x=df.index, y=df['fiftyema'],
+                                 mode='lines',
+                                 line_color='orange',
+                                 name='fiftyema'))
+
 
         # main chart end
         if rsi:
@@ -170,7 +163,7 @@ class IndicatorAnalysis:
         else:
             fig['layout']['yaxis1'].update(domain=[0, 1])
         filename = self.ticker+self.timeframe.name + str(self.interval) + '.html'
-        fig.write_html(filename, auto_open=True)
+        fig.write_html(filename)
         s3 = boto3.client('s3')
         s3.upload_file(filename, BUCKET_NAME, filename ,ExtraArgs={'ContentType': 'text/html'})
         return "https://" + BUCKET_NAME+".s3."+BUCKET_REGION+".amazonaws.com/" + filename

@@ -7,7 +7,7 @@ from plotly.subplots import make_subplots
 class PatternsAnalysis:
     def __init__(self, client, ticker, timeframe, interval=1, lookback=200, order=3, from_csv=False):
         if from_csv:
-            self.df = pd.read_csv("./data/btc.csv")
+            self.df = pd.read_csv("./data/{}.csv".format(ticker))
         else:
             self.df = client.get_all_data(ticker=ticker, timeframe=timeframe, interval=interval, lookback=lookback)
             self.order = order
@@ -26,7 +26,7 @@ class PatternsAnalysis:
         df['supportLine'] = None
         df.reset_index(inplace=True)
         lines = []
-        i=0
+        i = 0
         lows_line = []
         for index, row in df.iterrows():
             if row['Lpeaks']:

@@ -8,14 +8,17 @@ from datetime import datetime
 
 
 
-def main(timeframe, interval):
+def main(timeframe, interval, order):
     print("started")
     client = BinancePublicClient('https://binance.com')
-    tickers = ['BTCUSDT', 'BNBBTC', 'ETHBTC', 'XRPBTC', 'LTCBTC', 'BCHBTC', 'ADABTC', 'LINKBTC', 'NEOBTC']
+    if timeframe.value[0] == 'm':
+        tickers = ['BTCUSDT']
+    else:
+        tickers = ['BTCUSDT', 'BNBUSDT', 'ETHUSDT', 'XRPUSDT', 'LTCUSDT', 'BCHUSDT', 'ADAUSDT', 'NEOUSDT']
     while True:
         for ticker in tickers:
             IndicatorAnalysis(client, ticker=ticker, timeframe=timeframe, interval=interval, lookback=80,
-                                      order=3)
+                                      order=order)
         now = datetime.now()
         current_time = now.strftime("%H:%M:%S")
         print(current_time +": finished "+ timeframe.name + str(interval))
@@ -26,8 +29,10 @@ if __name__ == '__main__':
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         threads = []
-        threads.append(threading.Thread(target=main, args=(Timeframe.DAY, 1,)))
-        threads.append(threading.Thread(target=main, args=(Timeframe.HOUR, 1,)))
-        threads.append(threading.Thread(target=main, args=(Timeframe.HOUR, 4,)))
+        threads.append(threading.Thread(target=main, args=(Timeframe.DAY, 1, 3)))
+        threads.append(threading.Thread(target=main, args=(Timeframe.MINUTE, 15, 4)))
+        threads.append(threading.Thread(target=main, args=(Timeframe.MINUTE, 5, 4)))
+        threads.append(threading.Thread(target=main, args=(Timeframe.HOUR, 4, 3)))
         for t in threads:
-            t.start()
+           t.start()
+

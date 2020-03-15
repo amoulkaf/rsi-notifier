@@ -10,7 +10,7 @@ from .timeframe import Timeframe
 
 
 class BinancePublicClient:
-    klines = "/api/v1/klines"
+    klines = "/api/v3/klines"
 
     # Time conversion
     day = 86400 * 1000
@@ -34,6 +34,7 @@ class BinancePublicClient:
         }
 
         r = requests.get("{}{}".format(self.endpoint, self.klines), params=params)
+
         return json.loads(r.text)
 
     def get_records(self, ticker, timeframe, interval, lookback):
@@ -71,7 +72,10 @@ class BinancePublicClient:
         records = self.get_records(ticker, timeframe, interval, lookback)
         start_date = datetime.datetime.fromtimestamp(int(float(records[0][0]) / 1000))
         end_date = datetime.datetime.fromtimestamp(int(float(records[len(records) - 1][0]) / 1000))
-        date_range = pd.date_range(start_date, end_date, freq='{}{}'.format(interval, timeframe.value[0]))
+        if timeframe.value[0] == 'm':
+            date_range = pd.date_range(start_date, end_date, freq='{}{}'.format(interval, 'min'))
+        else:
+            date_range = pd.date_range(start_date, end_date, freq='{}{}'.format(interval, timeframe.value[0]))
         date_range = date_range[-len(records):]
         for i in range(len(records)):
             records[i] = [float(x) for x in records[i][1:6]]

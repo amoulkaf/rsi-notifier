@@ -1,7 +1,7 @@
 import smtplib
 import json
 from email.message import EmailMessage
-
+import winsound
 
 with open('./quant/config.json') as json_file:
     data = json.load(json_file)
@@ -11,7 +11,7 @@ with open('./quant/config.json') as json_file:
 
 def notification(source, ticker, interval, timeframe, url):
     print("not start")
-
+    winsound.Beep(700, 1000)
     msg = EmailMessage()
     msg['From'] = GMAIL_USER
 
