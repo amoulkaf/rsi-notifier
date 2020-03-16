@@ -18,7 +18,7 @@ with open('./quant/config.json') as json_file:
 
 
 class IndicatorAnalysis:
-    def __init__(self, client, ticker, timeframe, interval=1, lookback=200, order=5, fromcsv=False):
+    def __init__(self, client, ticker, timeframe, interval=1, lookback=200, order=5, fromcsv=False, aws=False):
         if fromcsv:
             df = pd.read_csv("./data/{}.csv".format(ticker))
         else:
@@ -28,6 +28,7 @@ class IndicatorAnalysis:
         self.ticker = ticker
         self.timeframe = timeframe
         self.interval = interval
+        self.aws = aws
 
         self.lpeaks = scipy.signal.argrelmin(self.df['closes'].values, order=self.order)
         self.hpeaks = scipy.signal.argrelmax(self.df['closes'].values, order=self.order)
@@ -164,6 +165,9 @@ class IndicatorAnalysis:
             fig['layout']['yaxis1'].update(domain=[0, 1])
         filename = self.ticker+self.timeframe.name + str(self.interval) + '.html'
         fig.write_html(filename)
-        s3 = boto3.client('s3')
-        s3.upload_file(filename, BUCKET_NAME, filename ,ExtraArgs={'ContentType': 'text/html'})
-        return "https://" + BUCKET_NAME+".s3."+BUCKET_REGION+".amazonaws.com/" + filename
+        if self.aws:
+            s3 = boto3.client('s3')
+            s3.upload_file(filename, BUCKET_NAME, filename ,ExtraArgs={'ContentType': 'text/html'})
+            return "https://" + BUCKET_NAME+".s3."+BUCKET_REGION+".amazonaws.com/" + filename
+        else:
+            return "aws option is not activated ( check main.py in the 'IndicatorAnalysis' call "

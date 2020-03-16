@@ -18,7 +18,7 @@ def main(timeframe, interval, order):
     while True:
         for ticker in tickers:
             IndicatorAnalysis(client, ticker=ticker, timeframe=timeframe, interval=interval, lookback=80,
-                                      order=order)
+                                      order=order, aws=False)
         now = datetime.now()
         current_time = now.strftime("%H:%M:%S")
         print(current_time +": finished "+ timeframe.name + str(interval))
